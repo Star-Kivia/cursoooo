@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulação - Sistema de Gerenciamento de Impressão</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            display: flex;
+            gap: 40px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .phone-container {
+            flex: 0 0 350px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .phone-mockup {
+            width: 320px;
+            height: 650px;
+            background: #1e293b;
+            border-radius: 30px;
+            padding: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .phone-notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 20px;
+            background: #1e293b;
+            border-bottom-left-radius: 10px;
+            border-bottom-right-radius: 10px;
+            z-index: 10;
+        }
+
+        .control-panel {
+            flex: 1;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .control-title {
+            font-size: 1.8rem;
+            color: #4361ee;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .control-subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .progress-container {
+            margin-bottom: 30px;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress {
+            height: 100%;
+            background: linear-gradient(90deg, #4361ee, #3a0ca3);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .step-indicator {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            justify-content: center;
+        }
+
+        .step {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ddd;
+            transition: all 0.3s ease;
+        }
+
+        .step.active {
+            background: #4361ee;
+            transform: scale(1.2);
+        }
+
+        .explanation-box {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-left: 4px solid #4361ee;
+        }
+
+        .explanation-title {
+            font-size: 1.2rem;
+            color: #4361ee;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .explanation-text {
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .control-btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-btn i {
+            font-size: 1rem;
+        }
+
+        .btn-pause {
+            background: #4361ee;
+            color: white;
+        }
+
+        .btn-pause:hover {
+            background: #3a0ca3;
+        }
+
+        .btn-restart {
+            background: #f8f9fa;
+            color: #4361ee;
+            border: 2px solid #4361ee;
+        }
+
+        .btn-restart:hover {
+            background: #e9ecef;
+        }
+
+        /* ESTILOS PARA SCROLL NATURAL */
+        .scrollable-content {
+            height: 100%;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .scrollable-content::-webkit-scrollbar {
+            display: none;
+        }
+
+        .scroll-indicator {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(67, 97, 238, 0.9);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            animation: bounce 2s infinite;
+            z-index: 100;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0) translateX(-50%); }
+            40% { transform: translateY(-10px) translateX(-50%); }
+            60% { transform: translateY(-5px) translateX(-50%); }
+        }
+
+        .typing-animation {
+            display: inline-block;
+            overflow: hidden;
+            border-right: 2px solid #4361ee;
+            white-space: nowrap;
+            animation: typing 1s steps(20, end), blink-caret 0.75s step-end infinite;
+        }
+
+        @keyframes typing {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+
+        @keyframes blink-caret {
+            from, to { border-color: transparent; }
+            50% { border-color: #4361ee; }
+        }
+
+        .click-effect {
+            animation: click 0.3s ease;
+        }
+
+        @keyframes click {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.95); }
+            100% { transform: scale(1); }
+        }
+
+        .queue-badge {
+            background: #f59e0b;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .timer {
+            color: #ef4444;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+
+        .highlight-section {
+            background: rgba(67, 97, 238, 0.1) !important;
+            border: 2px solid #4361ee !important;
+            border-radius: 10px;
+            transition: all 0.5s ease;
+        }
+        
+        .input-highlight {
+            box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.5);
+            transition: box-shadow 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="phone-container">
+            <div class="phone-mockup">
+                <div class="phone-notch"></div>
+                <div class="phone-screen" id="phone-screen">
+                    <!-- O conteúdo do app será injetado aqui -->
+                </div>
+            </div>
+        </div>
+
+        <div class="control-panel">
+            <h1 class="control-title">Simulação do Sistema</h1>
+            <p class="control-subtitle">Sistema Inteligente de Gerenciamento de Impressão</p>
+            
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress" id="progress-bar"></div>
+                </div>
+                <div class="progress-text">
+                    <span id="current-step">Etapa 1/8</span>
+                    <span id="progress-percent">0%</span>
+                </div>
+            </div>
+
+            <div class="step-indicator">
+                <div class="step active" id="step-1"></div>
+                <div class="step" id="step-2"></div>
+                <div class="step" id="step-3"></div>
+                <div class="step" id="step-4"></div>
+                <div class="step" id="step-5"></div>
+                <div class="step" id="step-6"></div>
+                <div class="step" id="step-7"></div>
+                <div class="step" id="step-8"></div>
+            </div>
+
+            <div class="explanation-box">
+                <h3 class="explanation-title" id="explanation-title">Iniciando Simulação</h3>
+                <p class="explanation-text" id="explanation-text">
+                    Esta simulação demonstrará automaticamente todas as funcionalidades do sistema de gerenciamento de impressão.
+                </p>
+            </div>
+
+            <div class="controls">
+                <button class="control-btn btn-pause" id="pause-btn">
+                    <i class="fas fa-pause"></i>
+                    Pausar
+                </button>
+                <button class="control-btn btn-restart" id="restart-btn">
+                    <i class="fas fa-redo"></i>
+                    Reiniciar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Estado da simulação
+        let isPaused = false;
+        let currentStep = 0;
+        let appInitialized = false;
+        let simulationTimeout;
+        let currentSimulation;
+
+        // Elementos do controle
+        const progressBar = document.getElementById('progress-bar');
+        const currentStepEl = document.getElementById('current-step');
+        const progressPercent = document.getElementById('progress-percent');
+        const explanationTitle = document.getElementById('explanation-title');
+        const explanationText = document.getElementById('explanation-text');
+        const pauseBtn = document.getElementById('pause-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const phoneScreen = document.getElementById('phone-screen');
+
+        // Dados do sistema
+        const usuariosCadastrados = [
+            { username: 'funcionario.ws', matricula: '2024001', senha: 'senha123', nome: 'João Silva', email: 'joao.silva@wscomunicacao.com', tipo_usuario: 'funcionario' }
+        ];
+
+        const impressoras = [
+            { id: 1, nome: 'HP LaserJet Pro', tempo_medio: 20 },
+            { id: 2, nome: 'Epson EcoTank', tempo_medio: 30 },
+            { id: 3, nome: 'Canon PIXMA', tempo_medio: 25 }
+        ];
+
+        // Conteúdo HTML do aplicativo
+        const appHTML = `
+            <div id="appContainer" style="height: 100%; display: flex; flex-direction: column; overflow: hidden;">
+                <!-- Tela de Login -->
+                <div id="loginScreen" style="height: 100%; background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%); color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; overflow: hidden;">
+                    <div style="text-align: center; margin-bottom: 25px;">
+                        <div style="font-size: 2.5rem; margin-bottom: 10px;">🖨️</div>
+                        <h2 style="font-size: 1.3rem; margin-bottom: 5px;">Gerenciador de Impressão</h2>
+                        <p style="opacity: 0.8; font-size: 0.9rem;">Faça login para continuar</p>
+                    </div>
+                    
+                    <div style="width: 100%; max-width: 260px;">
+                        <div style="margin-bottom: 10px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem;">Login</label>
+                            <input type="text" id="sim-username" style="width: 100%; padding: 10px; border: none; border-radius: 8px; background: rgba(255,255,255,0.9); font-size: 0.9rem;" placeholder="Digite seu login">
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem;">Matrícula</label>
+                            <input type="text" id="sim-matricula" style="width: 100%; padding: 10px; border: none; border-radius: 8px; background: rgba(255,255,255,0.9); font-size: 0.9rem;" placeholder="Digite sua matrícula">
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem;">Senha</label>
+                            <input type="password" id="sim-password" style="width: 100%; padding: 10px; border: none; border-radius: 8px; background: rgba(255,255,255,0.9); font-size: 0.9rem;" placeholder="Digite sua senha">
+                        </div>
+                        <button id="sim-login-btn" style="width: 100%; padding: 12px; background: white; color: #4361ee; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; margin-bottom: 12px; font-size: 0.9rem;">Entrar</button>
+                        <div style="text-align: center; font-size: 0.85rem;">
+                            <span style="opacity: 0.8;">Não tem uma conta? </span>
+                            <a id="sim-go-register" style="color: white; text-decoration: underline; cursor: pointer;">Cadastre-se</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tela de Cadastro -->
+                <div id="registerScreen" style="height: 100%; background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%); color: white; display: none; flex-direction: column; padding: 15px; overflow: hidden;">
+                    <div style="text-align: center; margin-bottom: 15px;">
+                        <h2 style="font-size: 1.3rem; margin-bottom: 5px;">Cadastro</h2>
+                        <p style="opacity: 0.8; font-size: 0.9rem;">Crie sua conta</p>
+                    </div>
+                    
+                    <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;">
+                        <div>
+                            <div style="margin-bottom: 10px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem;">Nome Completo</label>
+                                <input type="text" id="sim-reg-name" style="width: 100%; padding: 10px; border: none; border-radius: 8px; background: rgba(255,255,255,0.9); font-size: 0.9rem;" placeholder="Digite seu nome completo">
+                            </div>
+                            <div style="margin-bottom: 10px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem;">E-mail</label>
+                                <input type="email" id="sim-reg-email" style="width: 100%; padding: 10px; border: none; border-radius: 8px; background: rgba(255,255,255,0.9); font-size: 0.9rem;" placeholder="Digite seu e-mail">
+                            </div>
+                            <div style="margin-bottom: 10px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem;">Login</label>
+                                <input type="text" id="sim-reg-username" style="width: 100%; padding: 10px; border: none; border-radius: 8px; background: rgba(255,255,255,0.9); font-size: 0.9rem;" placeholder="Digite nome de usuário">
+                            </div>
+                            <div style="margin-bottom: 10px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem;">Matrícula</label>
+                                <input type="text" id="sim-reg-matricula" style="width: 100%; padding: 10px; border: none; border-radius: 8px; background: rgba(255,255,255,0.9); font-size: 0.9rem;" placeholder="Digite sua matrícula">
+                            </div>
+                            <div style="margin-bottom: 10px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem;">Senha</label>
+                                <input type="password" id="sim-reg-password" style="width: 100%; padding: 10px; border: none; border-radius: 8px; background: rgba(255,255,255,0.9); font-size: 0.9rem;" placeholder="Digite sua senha">
+                            </div>
+                            <div style="margin-bottom: 15px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem;">Tipo de Usuário</label>
+                                <select id="sim-reg-type" style="width: 100%; padding: 10px; border: none; border-radius: 8px; background: rgba(255,255,255,0.9); font-size: 0.9rem;">
+                                    <option value="">— Selecione um tipo —</option>
+                                    <option value="aluno">Aluno</option>
+                                    <option value="professor">Professor</option>
+                                    <option value="adm">Administrador</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <button id="sim-register-btn" style="width: 100%; padding: 12px; background: white; color: #4361ee; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; margin-bottom: 12px; font-size: 0.9rem;">Cadastrar</button>
+                            <div style="text-align: center; font-size: 0.85rem;">
+                                <span style="opacity: 0.8;">Já tem uma conta? </span>
+                                <a id="sim-go-login" style="color: white; text-decoration: underline; cursor: pointer;">Faça login</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dashboard com SCROLL -->
+                <div id="dashboardScreen" style="height: 100%; display: none; flex-direction: column; overflow: hidden;">
+                    <div style="background: #4361ee; color: white; padding: 12px; display: flex; justify-content: space-between; align-items: center;">
+                        <h2 style="font-size: 1.1rem;">Dashboard</h2>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <div style="width: 28px; height: 28px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.8rem;">JS</div>
+                            <span style="font-size: 0.9rem;">João Silva</span>
+                        </div>
+                    </div>
+                    
+                    <div class="scrollable-content" id="dashboard-scroll" style="flex: 1; padding: 12px; position: relative;">
+                        <!-- Estatísticas -->
+                        <div id="stats-section" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px;">
+                            <div style="background: #f8f9fa; border-radius: 8px; padding: 12px; text-align: center; border: 1px solid #e0e0e0;">
+                                <div style="font-size: 1.3rem; font-weight: 700; color: #4361ee;" id="sim-total-orders">0</div>
+                                <div style="font-size: 0.75rem; color: #666;">Total de Ordens</div>
+                            </div>
+                            <div style="background: #f8f9fa; border-radius: 8px; padding: 12px; text-align: center; border: 1px solid #e0e0e0;">
+                                <div style="font-size: 1.3rem; font-weight: 700; color: #4361ee;" id="sim-in-progress">0</div>
+                                <div style="font-size: 0.75rem; color: #666;">Em Andamento</div>
+                            </div>
+                            <div style="background: #f8f9fa; border-radius: 8px; padding: 12px; text-align: center; border: 1px solid #e0e0e0;">
+                                <div style="font-size: 1.3rem; font-weight: 700; color: #4361ee;" id="sim-in-queue">0</div>
+                                <div style="font-size: 0.75rem; color: #666;">Na Fila</div>
+                            </div>
+                            <div style="background: #f8f9fa; border-radius: 8px; padding: 12px; text-align: center; border: 1px solid #e0e0e0;">
+                                <div style="font-size: 1.3rem; font-weight: 700; color: #4361ee;" id="sim-completed">0</div>
+                                <div style="font-size: 0.75rem; color: #666;">Concluídas</div>
+                            </div>
+                        </div>
+
+                        <!-- Status das Impressoras -->
+                        <div id="printers-section">
+                            <h3 style="margin-bottom: 8px; font-size: 0.9rem; color: #333;">Status das Impressoras</h3>
+                            <div id="sim-printers-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
+                                <!-- Impressoras serão adicionadas dinamicamente -->
+                            </div>
+                        </div>
+
+                        <!-- Lista de Ordens Pendentes -->
+                        <div id="orders-section">
+                            <h3 style="margin-bottom: 8px; font-size: 0.9rem; color: #333;">Ordens Pendentes</h3>
+                            <div id="sim-orders-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
+                                <!-- Ordens serão adicionadas dinamicamente -->
+                            </div>
+                        </div>
+
+                        <!-- Histórico de Ordens -->
+                        <div id="history-section">
+                            <h3 style="margin-bottom: 8px; font-size: 0.9rem; color: #333;">Histórico Recente</h3>
+                            <div id="sim-history-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;">
+                                <!-- Histórico será adicionado dinamicamente -->
+                            </div>
+                        </div>
+
+                        <!-- Botões de Ação -->
+                        <div id="actions-section" style="display: flex; gap: 8px; margin-bottom: 20px;">
+                            <button id="sim-new-order-btn" style="flex: 1; padding: 10px; background: #4361ee; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.85rem;">Nova Ordem</button>
+                            <button id="sim-distribute-btn" style="flex: 1; padding: 10px; background: #10b981; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.85rem;">Distribuir Auto</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tela de Nova Ordem -->
+                <div id="orderScreen" style="height: 100%; display: none; flex-direction: column; overflow: hidden;">
+                    <div style="background: #4361ee; color: white; padding: 12px;">
+                        <h2 style="font-size: 1.1rem;">Nova Ordem de Serviço</h2>
+                    </div>
+                    
+                    <div style="flex: 1; padding: 15px; display: flex; flex-direction: column; gap: 12px; overflow: hidden;">
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #333; font-size: 0.9rem;">Descrição</label>
+                            <input type="text" id="sim-order-desc" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.9rem;" placeholder="Digite a descrição da tarefa">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #333; font-size: 0.9rem;">Tempo Estimado (min)</label>
+                            <input type="number" id="sim-order-time" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.9rem;" placeholder="Digite o tempo em minutos">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #333; font-size: 0.9rem;">Impressora</label>
+                            <select id="sim-order-printer" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.9rem;">
+                                <option value="">— Distribuição Automática —</option>
+                                <option value="1">HP LaserJet Pro (20min)</option>
+                                <option value="2">Epson EcoTank (30min)</option>
+                                <option value="3">Canon PIXMA (25min)</option>
+                            </select>
+                        </div>
+                        <button id="sim-create-order" style="margin-top: auto; padding: 12px; background: #4361ee; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem;">Criar Ordem</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Inicializar aplicativo
+        function initApp() {
+            phoneScreen.innerHTML = appHTML;
+            appInitialized = true;
+            
+            // Limpar todos os campos
+            clearAllFields();
+            initPrinters();
+            initStats();
+            initOrders();
+            initHistory();
+        }
+
+        // Limpar todos os campos
+        function clearAllFields() {
+            const fields = [
+                'sim-username', 'sim-matricula', 'sim-password',
+                'sim-reg-name', 'sim-reg-email', 'sim-reg-username', 
+                'sim-reg-matricula', 'sim-reg-password', 'sim-reg-type',
+                'sim-order-desc', 'sim-order-time', 'sim-order-printer'
+            ];
+            
+            fields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    if (field.tagName === 'SELECT') {
+                        field.value = '';
+                    } else {
+                        field.value = '';
+                        // Manter o placeholder original
+                    }
+                }
+            });
+        }
+
+        // Inicializar lista de impressoras
+        function initPrinters() {
+            const printersList = document.getElementById('sim-printers-list');
+            if (printersList) {
+                printersList.innerHTML = '';
+                impressoras.forEach(printer => {
+                    const printerEl = document.createElement('div');
+                    printerEl.style.cssText = 'background: white; border-radius: 6px; padding: 10px; border-left: 4px solid #4361ee; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;';
+                    
+                    const isBusy = Math.random() > 0.5;
+                    
+                    if (isBusy) {
+                        printerEl.style.borderLeftColor = '#f8961e';
+                        printerEl.innerHTML = `
+                            <div>
+                                <div style="font-weight: 600;">${printer.nome}</div>
+                                <div style="color: #666; font-size: 0.75rem;">Imprimindo - 2 na fila</div>
+                                <div class="timer">⏱️ ${Math.floor(Math.random() * 20) + 5}min restantes</div>
+                            </div>
+                            <div style="font-weight: 600; color: #4361ee;">${printer.tempo_medio}min</div>
+                        `;
+                    } else {
+                        printerEl.style.borderLeftColor = '#10b981';
+                        printerEl.innerHTML = `
+                            <div>
+                                <div style="font-weight: 600;">${printer.nome}</div>
+                                <div style="color: #666; font-size: 0.75rem;">Disponível</div>
+                                <div class="queue-badge">1 na fila</div>
+                            </div>
+                            <div style="font-weight: 600; color: #4361ee;">${printer.tempo_medio}min</div>
+                        `;
+                    }
+                    printersList.appendChild(printerEl);
+                });
+            }
+        }
+
+        // Inicializar lista de ordens
+        function initOrders() {
+            const ordersList = document.getElementById('sim-orders-list');
+            if (ordersList) {
+                ordersList.innerHTML = '';
+                
+                const sampleOrders = [
+                    { id: 101, descricao: 'Cartazes Promocionais', tempo: 25, status: 'Pendente' },
+                    { id: 102, descricao: 'Folhetos Institucionais', tempo: 30, status: 'Em Andamento' },
+                    { id: 103, descricao: 'Convites Corporativos', tempo: 20, status: 'Pendente' },
+                    { id: 104, descricao: 'Banners Publicitários', tempo: 45, status: 'Pendente' }
+                ];
+
+                sampleOrders.forEach(order => {
+                    const orderEl = document.createElement('div');
+                    orderEl.style.cssText = 'background: #f8f9fa; border-radius: 6px; padding: 8px; border-left: 3px solid #f59e0b; font-size: 0.8rem;';
+                    
+                    if (order.status === 'Em Andamento') {
+                        orderEl.style.borderLeftColor = '#4361ee';
+                    }
+                    
+                    orderEl.innerHTML = `
+                        <div style="font-weight: 600;">#${order.id} - ${order.descricao}</div>
+                        <div style="color: #666; font-size: 0.7rem; display: flex; justify-content: space-between;">
+                            <span>${order.tempo}min</span>
+                            <span style="background: ${order.status === 'Pendente' ? '#f59e0b' : '#4361ee'}; color: white; padding: 1px 6px; border-radius: 10px; font-size: 0.65rem;">${order.status}</span>
+                        </div>
+                    `;
+                    ordersList.appendChild(orderEl);
+                });
+            }
+        }
+
+        // Inicializar histórico
+        function initHistory() {
+            const historyList = document.getElementById('sim-history-list');
+            if (historyList) {
+                historyList.innerHTML = '';
+                
+                const historyItems = [
+                    { id: 98, descricao: 'Cartões de Visita', tempo: 15, status: 'Concluída', data: '10:30' },
+                    { id: 99, descricao: 'Panfletos A4', tempo: 25, status: 'Concluída', data: '09:45' },
+                    { id: 100, descricao: 'Adesivos', tempo: 18, status: 'Concluída', data: '09:15' }
+                ];
+
+                historyItems.forEach(item => {
+                    const historyEl = document.createElement('div');
+                    historyEl.style.cssText = 'background: #f0f9ff; border-radius: 6px; padding: 8px; border-left: 3px solid #10b981; font-size: 0.8rem;';
+                    
+                    historyEl.innerHTML = `
+                        <div style="font-weight: 600;">#${item.id} - ${item.descricao}</div>
+                        <div style="color: #666; font-size: 0.7rem; display: flex; justify-content: space-between;">
+                            <span>${item.tempo}min • ${item.data}</span>
+                            <span style="background: #10b981; color: white; padding: 1px 6px; border-radius: 10px; font-size: 0.65rem;">${item.status}</span>
+                        </div>
+                    `;
+                    historyList.appendChild(historyEl);
+                });
+            }
+        }
+
+        // Inicializar estatísticas
+        function initStats() {
+            document.getElementById('sim-total-orders').textContent = '8';
+            document.getElementById('sim-in-progress').textContent = '2';
+            document.getElementById('sim-in-queue').textContent = '3';
+            document.getElementById('sim-completed').textContent = '3';
+        }
+
+        // Mostrar tela específica
+        function showScreen(screenId) {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('registerScreen').style.display = 'none';
+            document.getElementById('dashboardScreen').style.display = 'none';
+            document.getElementById('orderScreen').style.display = 'none';
+            document.getElementById(screenId).style.display = 'flex';
+        }
+
+        // Scroll natural para seção específica - MELHORADO
+        function scrollToSection(sectionId, duration = 1000) {
+            return new Promise(resolve => {
+                const container = document.getElementById('dashboard-scroll');
+                const section = document.getElementById(sectionId);
+                
+                if (!container || !section) {
+                    resolve();
+                    return;
+                }
+
+                // Destacar a seção
+                section.classList.add('highlight-section');
+                setTimeout(() => {
+                    section.classList.remove('highlight-section');
+                }, 2000);
+
+                const start = container.scrollTop;
+                const target = section.offsetTop - 20;
+                const distance = target - start;
+                const startTime = performance.now();
+
+                function animateScroll(currentTime) {
+                    if (isPaused) return;
+                    
+                    const elapsed = currentTime - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    
+                    // Easing function para movimento mais suave e natural
+                    const ease = progress < 0.5 
+                        ? 4 * progress * progress * progress 
+                        : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+                    
+                    container.scrollTop = start + distance * ease;
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(animateScroll);
+                    } else {
+                        // Pequeno movimento de "respiração" no final
+                        setTimeout(() => {
+                            container.scrollTop = target;
+                            resolve();
+                        }, 200);
+                    }
+                }
+
+                requestAnimationFrame(animateScroll);
+            });
+        }
+
+        // Atualizar progresso
+        function updateProgress(step, totalSteps = 8) {
+            const percent = (step / totalSteps) * 100;
+            progressBar.style.width = percent + '%';
+            currentStepEl.textContent = `Etapa ${step}/${totalSteps}`;
+            progressPercent.textContent = `${Math.round(percent)}%`;
+            
+            for (let i = 1; i <= totalSteps; i++) {
+                const stepEl = document.getElementById('step-' + i);
+                if (i <= step) {
+                    stepEl.classList.add('active');
+                } else {
+                    stepEl.classList.remove('active');
+                }
+            }
+        }
+
+        // Simular digitação - CAMPOS VAZIOS - CORRIGIDO
+        function typeText(element, text, speed = 50) {
+            return new Promise(resolve => {
+                // Garantir que o campo está vazio
+                element.value = '';
+                
+                // Destacar o campo durante a digitação
+                element.classList.add('input-highlight');
+                
+                let i = 0;
+                const typeInterval = setInterval(() => {
+                    if (isPaused) {
+                        clearInterval(typeInterval);
+                        return;
+                    }
+                    
+                    if (i < text.length) {
+                        element.value += text.charAt(i);
+                        i++;
+                    } else {
+                        clearInterval(typeInterval);
+                        setTimeout(() => {
+                            element.classList.remove('input-highlight');
+                            resolve();
+                        }, 300);
+                    }
+                }, speed);
+            });
+        }
+
+        // Simular clique
+        function simulateClick(element, delay = 1000) {
+            return new Promise(resolve => {
+                const timeoutId = setTimeout(() => {
+                    if (isPaused) return;
+                    
+                    element.classList.add('click-effect');
+                    setTimeout(() => {
+                        element.classList.remove('click-effect');
+                        resolve();
+                    }, 300);
+                }, delay);
+
+                // Guardar o timeout para poder cancelar se pausado
+                if (!simulationTimeout) simulationTimeout = [];
+                simulationTimeout.push(timeoutId);
+            });
+        }
+
+        // Executar simulação CORRIGIDA
+        async function runSimulation() {
+            if (!appInitialized) initApp();
+            
+            // Etapa 1: Cadastro
+            currentStep = 1;
+            updateProgress(1);
+            updateExplanation("Cadastro de Usuário", "Preenchendo formulário de cadastro com dados pessoais, login, matrícula e tipo de usuário.");
+            showScreen('registerScreen');
+            
+            // Limpar campos antes de digitar
+            document.getElementById('sim-reg-name').value = '';
+            document.getElementById('sim-reg-email').value = '';
+            document.getElementById('sim-reg-username').value = '';
+            document.getElementById('sim-reg-matricula').value = '';
+            document.getElementById('sim-reg-password').value = '';
+            document.getElementById('sim-reg-type').value = '';
+            
+            await typeText(document.getElementById('sim-reg-name'), 'João Silva');
+            await typeText(document.getElementById('sim-reg-email'), 'joao.silva@wscomunicacao.com');
+            await typeText(document.getElementById('sim-reg-username'), 'funcionario.ws');
+            await typeText(document.getElementById('sim-reg-matricula'), '2024001');
+            await typeText(document.getElementById('sim-reg-password'), 'senha123');
+            
+            // Simular seleção do tipo de usuário
+            const userTypeSelect = document.getElementById('sim-reg-type');
+            userTypeSelect.value = 'funcionario';
+            await simulateClick(document.getElementById('sim-register-btn'));
+            
+            // Etapa 2: Login
+            currentStep = 2;
+            updateProgress(2);
+            updateExplanation("Tela de Login", "Autenticação no sistema usando as credenciais cadastradas anteriormente.");
+            await simulateClick(document.getElementById('sim-go-login'));
+            showScreen('loginScreen');
+            
+            // Limpar campos antes de digitar
+            document.getElementById('sim-username').value = '';
+            document.getElementById('sim-matricula').value = '';
+            document.getElementById('sim-password').value = '';
+            
+            await typeText(document.getElementById('sim-username'), 'funcionario.ws');
+            await typeText(document.getElementById('sim-matricula'), '2024001');
+            await typeText(document.getElementById('sim-password'), 'senha123');
+            await simulateClick(document.getElementById('sim-login-btn'));
+            
+            // Etapa 3: Dashboard - Estatísticas
+            currentStep = 3;
+            updateProgress(3);
+            updateExplanation("Dashboard - Estatísticas", "Visualização das estatísticas em tempo real: total de ordens, em andamento, na fila e concluídas.");
+            showScreen('dashboardScreen');
+            initPrinters();
+            initStats();
+            initOrders();
+            initHistory();
+            
+            await scrollToSection('stats-section');
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            // Etapa 4: Status das Impressoras
+            currentStep = 4;
+            updateProgress(4);
+            updateExplanation("Status das Impressoras", "Monitoramento em tempo real do status de todas as impressoras: disponibilidade, tempo médio e fila de trabalho.");
+            await scrollToSection('printers-section');
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            // Etapa 5: Ordens Pendentes
+            currentStep = 5;
+            updateProgress(5);
+            updateExplanation("Ordens Pendentes", "Visualização e gerenciamento das ordens na fila de espera com status e tempo estimado de cada uma.");
+            await scrollToSection('orders-section');
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            // Etapa 6: Histórico de Ordens
+            currentStep = 6;
+            updateProgress(6);
+            updateExplanation("Histórico de Ordens", "Registro das ordens já concluídas com data, hora e tempo de execução.");
+            await scrollToSection('history-section');
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            // Etapa 7: Nova Ordem
+            currentStep = 7;
+            updateProgress(7);
+            updateExplanation("Criar Nova Ordem", "Preenchimento do formulário para criar nova ordem: descrição, tempo estimado e seleção de impressora.");
+            await scrollToSection('actions-section');
+            await simulateClick(document.getElementById('sim-new-order-btn'));
+            showScreen('orderScreen');
+            
+            // Limpar campos antes de digitar
+            document.getElementById('sim-order-desc').value = '';
+            document.getElementById('sim-order-time').value = '';
+            document.getElementById('sim-order-printer').value = '';
+            
+            await typeText(document.getElementById('sim-order-desc'), 'Panfletos Publicitários Verão 2025');
+            await typeText(document.getElementById('sim-order-time'), '35');
+            await simulateClick(document.getElementById('sim-create-order'));
+            
+            // Etapa 8: Sistema em Funcionamento
+            currentStep = 8;
+            updateProgress(8);
+            updateExplanation("Sistema em Operação", "Sistema funcionando com todas as features ativas: distribuição automática de tarefas e monitoramento em tempo real.");
+            showScreen('dashboardScreen');
+            
+            // Scroll natural por todas as seções
+            await scrollToSection('stats-section');
+            await new Promise(resolve => setTimeout(resolve, 800));
+            await scrollToSection('printers-section');
+            await new Promise(resolve => setTimeout(resolve, 800));
+            await scrollToSection('orders-section');
+            await new Promise(resolve => setTimeout(resolve, 800));
+            await scrollToSection('history-section');
+            await new Promise(resolve => setTimeout(resolve, 800));
+            await scrollToSection('actions-section');
+            
+            // Aguardar e reiniciar
+            await new Promise(resolve => {
+                if (!isPaused) setTimeout(resolve, 3000);
+            });
+            
+            if (!isPaused) restartSimulation();
+        }
+
+        // Funções auxiliares
+        function updateExplanation(title, text) {
+            explanationTitle.textContent = title;
+            explanationText.textContent = text;
+        }
+
+        // Botão de pausa CORRIGIDO
+        pauseBtn.addEventListener('click', () => {
+            isPaused = !isPaused;
+            
+            if (isPaused) {
+                pauseBtn.innerHTML = '<i class="fas fa-play"></i> Continuar';
+                // Limpar todos os timeouts quando pausar
+                if (simulationTimeout) {
+                    simulationTimeout.forEach(timeout => clearTimeout(timeout));
+                    simulationTimeout = [];
+                }
+            } else {
+                pauseBtn.innerHTML = '<i class="fas fa-pause"></i> Pausar';
+                // Continuar simulação do ponto atual
+                if (currentSimulation) {
+                    currentSimulation();
+                }
+            }
+        });
+
+        function restartSimulation() {
+            // Limpar timeouts
+            if (simulationTimeout) {
+                simulationTimeout.forEach(timeout => clearTimeout(timeout));
+                simulationTimeout = [];
+            }
+            
+            isPaused = false;
+            currentStep = 0;
+            pauseBtn.innerHTML = '<i class="fas fa-pause"></i> Pausar';
+            updateProgress(0);
+            updateExplanation("Reiniciando Simulação", "Preparando para demonstrar novamente o sistema completo.");
+            setTimeout(() => {
+                currentSimulation = runSimulation;
+                runSimulation();
+            }, 2000);
+        }
+
+        restartBtn.addEventListener('click', restartSimulation);
+
+        // Iniciar simulação
+        window.addEventListener('load', () => {
+            initApp();
+            setTimeout(() => {
+                currentSimulation = runSimulation;
+                runSimulation();
+            }, 1000);
+        });
+    </script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</body>
+</html>
